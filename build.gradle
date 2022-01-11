@@ -14,24 +14,27 @@ version = "1.0.2"
 shadowJar {
     minimize()
     mergeServiceFiles()
-    archiveBaseName.set('iot-sdk-java')
+}
+
+java {
+    withJavadocJar()
+    withSourcesJar()
+    shadowJar
 }
 
 repositories {
     mavenCentral()
 }
 
-java {
-    withJavadocJar()
-    withSourcesJar()
-}
 
 javadoc {
+    failOnError false
+    options.addStringOption('Xdoclint:none', '-quiet')
+    options.addStringOption('encoding', 'UTF-8')
+    options.addStringOption('charSet', 'UTF-8')
+    options.addStringOption('Xdoclint:none', '-quiet')
     if (JavaVersion.current().isJava9Compatible()) {
         options.addBooleanOption('html5', true)
-    }
-    if (JavaVersion.current().isJava8Compatible()) {
-        options.addStringOption('Xdoclint:none', '-quiet')
     }
 }
 
@@ -39,9 +42,9 @@ javadoc {
 publishing {
     publications {
         shadow(MavenPublication) { publication ->
-            project.shadow.component(publication)
             group = 'com.excelsecu.iot'
             artifactId = 'iot-sdk-java'
+            from components.java
             version = project.version
             pom {
                 name = 'Excelsecu IoT SDK'
@@ -115,7 +118,6 @@ dependencies {
     testImplementation 'org.junit.jupiter:junit-jupiter-api:5.8.2'
     testImplementation 'org.junit.jupiter:junit-jupiter-engine:5.8.2'
     implementation "org.apache.httpcomponents.client5:httpclient5:${httpclient_version}"
-
     implementation "com.fasterxml.jackson.core:jackson-databind:$jackson_version"
     implementation "org.slf4j:slf4j-api:$slf4j_version"
     implementation "org.slf4j:slf4j-simple:$slf4j_version"
