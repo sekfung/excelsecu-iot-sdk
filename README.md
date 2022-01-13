@@ -1,3 +1,3 @@
-## ExcelSecu IoT SDK
+## Excelsecu IoT SDK
 
 Java SDK For Excelsecu IoT Platform

@@ -3,6 +3,7 @@ package com.excelsecu.iot.util;
 import com.excelsecu.iot.EsIoTApiException;
 import com.excelsecu.iot.EsRequest;
 import org.apache.hc.client5.http.config.RequestConfig;
+import org.apache.hc.client5.http.impl.DefaultHttpRequestRetryStrategy;
 import org.apache.hc.client5.http.impl.async.CloseableHttpAsyncClient;
 import org.apache.hc.client5.http.impl.async.HttpAsyncClients;
 import org.apache.hc.client5.http.impl.classic.CloseableHttpClient;
@@ -12,16 +13,28 @@ import org.apache.hc.client5.http.impl.io.PoolingHttpClientConnectionManagerBuil
 import org.apache.hc.client5.http.impl.nio.PoolingAsyncClientConnectionManager;
 import org.apache.hc.client5.http.impl.nio.PoolingAsyncClientConnectionManagerBuilder;
 import org.apache.hc.client5.http.ssl.ClientTlsStrategyBuilder;
+import org.apache.hc.core5.http.ConnectionClosedException;
 import org.apache.hc.core5.http.HttpHost;
+import org.apache.hc.core5.http.HttpStatus;
 import org.apache.hc.core5.http.io.SocketConfig;
 import org.apache.hc.core5.http.nio.ssl.TlsStrategy;
 import org.apache.hc.core5.http.ssl.TLS;
 import org.apache.hc.core5.io.CloseMode;
 import org.apache.hc.core5.reactor.IOReactorConfig;
 import org.apache.hc.core5.ssl.SSLContexts;
+import org.apache.hc.core5.util.TimeValue;
 import org.apache.hc.core5.util.Timeout;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+
+import javax.net.ssl.SSLException;
+import java.io.IOException;
+import java.io.InterruptedIOException;
+import java.net.ConnectException;
+import java.net.NoRouteToHostException;
+import java.net.UnknownHostException;
+import java.util.Arrays;
+import java.util.List;
 
 /**
  * @author sekfung
@@ -66,6 +79,7 @@ public class HttpClientUtil {
         syncHttpClient = HttpClients.custom().
                 setDefaultRequestConfig(requestConfig)
                 .evictExpiredConnections()
+                .setRetryStrategy(new HttpRequestRetryStrategy())
                 .setConnectionManager(cm)
                 .setConnectionManagerShared(false)
                 .build();
@@ -113,6 +127,7 @@ public class HttpClientUtil {
                 setDefaultRequestConfig(requestConfig)
                 .setIOReactorConfig(ioReactorConfig)
                 .setConnectionManager(cm)
+                .setRetryStrategy(new HttpRequestRetryStrategy())
                 .evictExpiredConnections()
                 .setConnectionManagerShared(false)
                 .build();
@@ -165,5 +180,33 @@ public class HttpClientUtil {
 
     public static HttpHost getProxy() {
         return proxyHost;
+    }
+
+    private static class HttpRequestRetryStrategy extends DefaultHttpRequestRetryStrategy {
+
+        public HttpRequestRetryStrategy() {
+            this(3, TimeValue.ofSeconds(1));
+        }
+
+        public HttpRequestRetryStrategy(
+                final int maxRetries,
+                final TimeValue defaultRetryInterval) {
+            this(maxRetries, defaultRetryInterval,
+                    Arrays.asList(
+                            InterruptedIOException.class,
+                            UnknownHostException.class,
+                            ConnectException.class,
+                            ConnectionClosedException.class,
+                            NoRouteToHostException.class,
+                            SSLException.class),
+                    Arrays.asList(
+                            HttpStatus.SC_INTERNAL_SERVER_ERROR,
+                            HttpStatus.SC_TOO_MANY_REQUESTS,
+                            HttpStatus.SC_SERVICE_UNAVAILABLE));
+        }
+
+        public HttpRequestRetryStrategy(int maxRetries, TimeValue defaultRetryInterval, List<Class<? extends IOException>> clazzes, List<Integer> cnodes) {
+            super(maxRetries, defaultRetryInterval, clazzes, cnodes);
+        }
     }
 }
