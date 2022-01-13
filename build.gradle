@@ -8,12 +8,13 @@ plugins {
 
 
 group = "com.excelsecu.iot"
-version = "1.0.3"
+version = "1.0.4"
 
 
 shadowJar {
     minimize()
     mergeServiceFiles()
+    archiveFileName.set("${project.name}-${project.version}.jar")
 }
 
 java {
